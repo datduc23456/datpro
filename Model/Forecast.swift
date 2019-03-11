@@ -7,3 +7,13 @@
 //
 
 import Foundation
+
+struct Forecast {
+    var time : String
+    var weather : Weather
+    
+    init(weather : Weather, time : String) {
+        self.weather = weather
+        self.time = time
+    }
+}
