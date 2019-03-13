@@ -13,11 +13,15 @@ import GooglePlaces
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-
+    let locationManager = CLLocationManager()
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         GMSPlacesClient.provideAPIKey("AIzaSyDfcxSn1G6HUmPGM52P1GV4jymEPEC4Ci0")
+        
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startMonitoringVisits()
+        locationManager.delegate = self
         return true
     }
 
@@ -46,3 +50,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
+extension AppDelegate : CLLocationManagerDelegate {
+    
+    func locationManager(_ manager: CLLocationManager, didVisit visit: CLVisit) {
+        // create CLLocation from the coordinates of CLVisit
+        let clLocation = CLLocation(latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude)
+        
+        // Get location description
+    }
+    
+    
+}

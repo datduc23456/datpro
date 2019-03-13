@@ -9,12 +9,15 @@
 import UIKit
 import GooglePlaces
 
-class PageViewController: UIPageViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource {
+class PageViewController: UIPageViewController, UIPageViewControllerDelegate, UIPageViewControllerDataSource, CLLocationManagerDelegate {
     
+    let locationManager : CLLocationManager = CLLocationManager()
+    var location : CLLocation!
     @IBAction func confirmClicked(_ sender: Any) {
         if place != nil {
             if let array = UserDefaults.standard.array(forKey: "places") as? [Int] {
                 self.array = array
+                
             }
             if !checkDupicateId(place!.id!){
                 self.array.append(place!.id!)
@@ -40,12 +43,18 @@ class PageViewController: UIPageViewController, UIPageViewControllerDelegate, UI
             alertController.addAction(cancelAction)
             alertController.addAction(settingsAction)
             self.present(alertController, animated: true, completion: nil)
+        } else {
+            callAPI()
         }
     }
+    
+    
     @IBAction func addPlace(_ sender: Any) {
         animateIn()
     }
+    
     var place: Place?
+    
     @IBOutlet var addItem: UIView!
     var vc1 : UIViewController?
     var vc2 : UIViewController?
@@ -63,11 +72,6 @@ class PageViewController: UIPageViewController, UIPageViewControllerDelegate, UI
         addItem.center = self.view.center
         addItem.transform = CGAffineTransform.init(scaleX: 1.3, y: 1.3)
         addItem.alpha = 1
-        //        UIView.animate(withDuration: 0.5, animations: { () in
-        //                self.visual.effect = self.effect
-        //                self.addItem.alpha = 1
-        //            self.addItem.transform = CGAffineTransform.identity
-        //        })
     }
     func animateOut() {
         UIView.animate(withDuration: 0.5, animations: {() in
@@ -116,7 +120,7 @@ class PageViewController: UIPageViewController, UIPageViewControllerDelegate, UI
         let previousIndex = viewControllerIndex - 1
         
         guard previousIndex >= 0 else {
-            return arrayViewControllers.last
+            return nil
         }
         
         guard arrayViewControllers.count > previousIndex else {
@@ -158,12 +162,26 @@ class PageViewController: UIPageViewController, UIPageViewControllerDelegate, UI
         }
         configurePageControl()
         addItem.layer.cornerRadius = 5
-        // Do any additional setup after loading the view.
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+        locationManager.delegate = self
+        location = locationManager.location
+        APIClient.forecast1(105.84, 21.02) {
+            weather , place in
+            self.updateUI(weather, place)
+        }
+        if let vc = vc2 as? ViewControllerDay {
+            APIClient.forecastFor1(105.84, 21.02) {
+                forecast in
+                vc.forecast = forecast
+                vc.tableViewDay?.reloadData()
+            }
+        }
     }
     
         
         func configurePageControl() {
-            // The total number of pages that are available is based on how many available colors we have.
             pageControl = UIPageControl(frame: CGRect(x: 0,y: UIScreen.main.bounds.maxY - 50,width: UIScreen.main.bounds.width,height: 50))
             self.pageControl.numberOfPages = arrayViewControllers.count
             self.pageControl.currentPage = 0
@@ -180,19 +198,10 @@ class PageViewController: UIPageViewController, UIPageViewControllerDelegate, UI
 }
 
 extension PageViewController: GMSAutocompleteViewControllerDelegate {
-    
-    // Handle the user's selection.
     func viewController(_ viewController: GMSAutocompleteViewController, didAutocompleteWith place: GMSPlace) {
-        print("Place name: \(place.name!)")
         if let vcMain = vc1 as? ViewController {
-        APIClient.forecast(withLocation: place.name!) { weather,place1 in
-            vcMain.lbCity.text = place1.name
-            vcMain.lbWeather.text = weather.description
-            vcMain.weather = weather
-            self.place = place1
-            vcMain.lbTemp.text = "\(Int(weather.temp - 273))"
-            vcMain.collectionView.reloadData()
-            UserDefaults.standard.set("\(place1.id!)", forKey: "place")
+            APIClient.forecast(withLocation: place.name!) { weather,place1 in
+                self.updateUI(weather, place1)
             }
         }
         dismiss(animated: true, completion: nil)
@@ -221,4 +230,48 @@ extension PageViewController: GMSAutocompleteViewControllerDelegate {
         return array.lastIndex(of: locationId) != nil
     }
     
+    
+    func callAPI () {
+        let lon = self.locationManager.location?.coordinate.longitude
+        let lat = self.locationManager.location?.coordinate.latitude
+        if (lon != nil && lat != nil){
+        APIClient.forecast1(lon!, lat!) {
+            weather , place in
+            self.updateUI(weather, place)
+        }
+        if let vc = vc2 as? ViewControllerDay {
+            APIClient.forecastFor1((locationManager.location?.coordinate.longitude)!, (locationManager.location?.coordinate.latitude)!) {
+                forecast in
+                vc.forecast = forecast
+                vc.tableViewDay?.reloadData()
+            }
+        }
+    }
+    }
+    
+    func updateUI (_ weather : Weather , _ place : Place) {
+        if let vcMain = vc1 as? ViewController {
+        vcMain.lbCity.text = place.name
+        vcMain.lbWeather.text = weather.main
+        vcMain.lbTemp.text = "\(Int(weather.temp - 273.0))"
+        self.place = place
+        vcMain.weather = weather
+        vcMain.collectionView.reloadData()
+        UserDefaults.standard.set("\(place.id)", forKey: "place")
+        switch weather.description {
+        case "clear sky":
+            vcMain.imageView.image = UIImage(named: "sun")
+        case "few clouds" , "scattered clouds" , "broken clouds":
+            vcMain.imageView.image = UIImage(named: "cloudy")
+        case "shower rain" , "rain":
+            vcMain.imageView.image = UIImage(named: "rain")
+        case "thunderstorm":
+            vcMain.imageView.image = UIImage(named: "storm")
+        case "snow":
+            vcMain.imageView.image = UIImage(named: "snow")
+        default:
+            vcMain.imageView.image = UIImage(named: "cloudy")
+        }
+        }
+    }
 }

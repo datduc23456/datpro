@@ -9,7 +9,7 @@
 import UIKit
 
 protocol TableViewCellDelegate : AnyObject {
-    func remove ()
+    func remove (placeId : Int)
 }
 
 class TableViewCell: UITableViewCell {
@@ -29,20 +29,9 @@ class TableViewCell: UITableViewCell {
 
     @IBOutlet weak var btnRemove: UIButton!
     @IBAction func btnRemove(_ sender: Any) {
-        if let id = placeId {
-            for i in 0..<array.count {
-                if id == array[i] {
-                    array.remove(at: i)
-                    UserDefaults.standard.set(array, forKey: "places")
-                    break
-                }
-            }
-        }
         if let delegate = self.delegate as? TableViewController {
-            delegate.remove()
+            delegate.remove(placeId : placeId!)
         }
-        
-        
     }
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)

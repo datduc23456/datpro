@@ -10,9 +10,13 @@ import UIKit
 
 class TableViewCellDay: UITableViewCell {
 
+    
     @IBOutlet weak var lblDay: UILabel!
-
+    
     @IBOutlet weak var collectionView: UICollectionView!
+    
+    var forecast : [Forecast] = []
+    
     override func awakeFromNib() {
         super.awakeFromNib()
         collectionView.delegate = self
@@ -30,33 +34,40 @@ class TableViewCellDay: UITableViewCell {
 
 extension TableViewCellDay : UICollectionViewDelegateFlowLayout, UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 8
+        return forecast.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CollectionViewCell", for: indexPath) as! CollectionViewCell
-        let index = indexPath.item
+        let index = forecast[indexPath.item].time.components(separatedBy: " ")[1]
         switch index {
-        case 0:
-            cell.lbl.text = "0h\n20ºC"
-        case 1:
-            cell.lbl.text = "3h\n20ºC"
-        case 2:
-            cell.lbl.text = "6h\n20ºC"
-        case 3:
-            cell.lbl.text = "9h\n20ºC"
-        case 4:
-            cell.lbl.text = "12h\n20ºC"
-        case 5:
-            cell.lbl.text = "15h\n20ºC"
-        case 6:
-            cell.lbl.text = "18h\n20ºC"
-        case 7:
-            cell.lbl.text = "21h\n20ºC"
+        case "00:00:00":
+            cell.lbl.text = "0h\n"
+        case "03:00:00":
+            cell.lbl.text = "3h\n"
+        case "06:00:00":
+            cell.lbl.text = "6h\n"
+        case "09:00:00":
+            cell.lbl.text = "9h\n"
+        case "12:00:00":
+            cell.lbl.text = "12h\n"
+        case "15:00:00":
+            cell.lbl.text = "15h\n"
+        case "18:00:00":
+            cell.lbl.text = "18h\n"
+        case "21:00:00":
+            cell.lbl.text = "21h\n"
         default:
             print("")
         }
-        cell.imageView.image = #imageLiteral(resourceName: "10d")
+        cell.lbl.text! += "\(Int(forecast[indexPath.item].weather.temp - 273.0))ºC"
+        let url = URL(string: "http://openweathermap.org/img/w/" + forecast[indexPath.item].weather.icon + ".png")
+        DispatchQueue.global().async {
+            let data = try? Data(contentsOf: url!)
+            DispatchQueue.main.async {
+                cell.imageView.image = UIImage(data: data!)
+            }
+        }
         return cell
     }
     

@@ -13,10 +13,24 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
     var placeId : [Any]?
     var weather : [Weather] = []
     var places : [Place] = []
+    var placeIdRemove : Int = -1
     var array : [Int] = []
+    @IBOutlet var removeView: UIView!
     @IBOutlet var removePlace: UIView!
     @IBOutlet weak var tableView: UITableView!
     func callApi() {
+        
+            if let array = UserDefaults.standard.array(forKey: "places") as? [Int] {
+                self.array = array
+            }
+            for i in 0..<array.count {
+                if placeIdRemove == array[i] {
+                    array.remove(at: i)
+                    UserDefaults.standard.set(array, forKey: "places")
+                    break
+                }
+            }
+        
         if let array = UserDefaults.standard.array(forKey: "places") as? [Int] {
             self.array = array
         }
@@ -32,6 +46,10 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
             weathers,places in
             self.weather = weathers
             self.places = places
+            self.tableView.reloadData()
+        }
+        if self.array.isEmpty {
+            self.places.removeAll()
             self.tableView.reloadData()
         }
     }
@@ -72,6 +90,7 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
         super.viewDidLoad()
         tableView.delegate = self
         tableView.dataSource = self
+        self.removeView.layer.cornerRadius = 5
         callApi()
     }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -97,8 +116,8 @@ class TableViewController: UIViewController, UITableViewDelegate, UITableViewDat
 }
 
 extension TableViewController : TableViewCellDelegate {
-    func remove() {
-//        callApi()
+    func remove(placeId : Int) {
+        self.placeIdRemove = placeId
         animateIn()
     }
 }

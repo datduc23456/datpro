@@ -12,10 +12,10 @@ import GooglePlaces
 class ViewController: UIViewController, UICollectionViewDataSource, CLLocationManagerDelegate {
     
 
+
     @IBOutlet weak var lbDate: UILabel!
     @IBOutlet weak var lbTemp: UILabel!
     @IBOutlet var addItem: UIView!
-//    @IBOutlet weak var visual: UIVisualEffectView!
     @IBOutlet weak var done: UIButton!
     @IBOutlet weak var add: UIBarButtonItem!
     @IBOutlet weak var imageView: UIImageView!
@@ -31,6 +31,9 @@ class ViewController: UIViewController, UICollectionViewDataSource, CLLocationMa
     @IBOutlet weak var footer: UIView!
     @IBOutlet weak var collectionView: UICollectionView!
 
+    var locationAction = {
+        
+    }
     
     @IBAction func locationClicked(_ sender: Any) {
         if CLLocationManager.authorizationStatus() == .denied {
@@ -47,8 +50,12 @@ class ViewController: UIViewController, UICollectionViewDataSource, CLLocationMa
             alertController.addAction(cancelAction)
             alertController.addAction(settingsAction)
             self.present(alertController, animated: true, completion: nil)
+        } else {
+            
+            
         }
     }
+    
     @IBAction func autocompleteClicked(_ sender: Any) {
         let autocompleteController = GMSAutocompleteViewController()
         autocompleteController.delegate = self
@@ -67,6 +74,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, CLLocationMa
         present(autocompleteController, animated: true, completion: nil)
     }
 
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         let date = Date()
@@ -75,8 +83,9 @@ class ViewController: UIViewController, UICollectionViewDataSource, CLLocationMa
         let result = formatter.string(from: date)
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.startMonitoringSignificantLocationChanges()
         locationManager.requestWhenInUseAuthorization()
-        locationManager.stopMonitoringSignificantLocationChanges()
+        locationManager.startUpdatingLocation()
         self.lbDate.text = result
         self.collectionView.dataSource = self
         self.collectionView.delegate = self
@@ -86,38 +95,17 @@ class ViewController: UIViewController, UICollectionViewDataSource, CLLocationMa
         collectionView?.contentInset = UIEdgeInsets(top: 0, left: 16, bottom: 10, right: 16)
 //        effect = visual.effect
 //        visual.effect = nil
-        
-        let placeId = UserDefaults.standard.integer(forKey: "place")
-        
-        if let placeId = placeId as? Int {
-            print("\(placeId)")
-        APIClient.forecast(withLocation: "&id=\(placeId)") { weather,place1 in
-            self.lbCity.text = place1.name
-            self.lbWeather.text = weather.main
-            self.lbTemp.text = "\(weather.temp - 273.0)"
-            self.place = place1
-            self.weather = weather
-            self.collectionView.reloadData()
-            UserDefaults.standard.set("\(place1.id)", forKey: "place")
-        }
-        }
-        
-        // Do any additional setup after loading the view, typically from a nib.
     }
-    override func viewDidAppear(_ animated: Bool) {
-        //locationAuthStatus()
-    }
+    
+   
+    
     
     func locationAuthStatus() {
         
         if CLLocationManager.authorizationStatus() == .authorizedWhenInUse {
             location = locationManager.location
-            print("\(location)" + " a")
-            print(location.coordinate.longitude)
         } else {
             locationManager.requestWhenInUseAuthorization()
-            
-            //locationAuthStatus()
         }
     }
 }
@@ -178,18 +166,10 @@ extension ViewController: UICollectionViewDelegateFlowLayout {
 }
 
 extension ViewController: GMSAutocompleteViewControllerDelegate {
-    
-    // Handle the user's selection.
     func viewController(_ viewController: GMSAutocompleteViewController, didAutocompleteWith place: GMSPlace) {
-        print("Place name: \(place.name!)")
         APIClient.forecast(withLocation: place.name!) { weather,place1 in
-            self.lbCity.text = place1.name
-            self.lbWeather.text = weather.description
-            self.weather = weather
-            self.place = place1
-            self.lbTemp.text = "\(Int(weather.temp - 273))"
-            self.collectionView.reloadData()
-            UserDefaults.standard.set("\(place1.id!)", forKey: "place")
+            
+            
         }
         dismiss(animated: true, completion: nil)
     }
@@ -217,5 +197,28 @@ extension ViewController: GMSAutocompleteViewControllerDelegate {
         return array.lastIndex(of: locationId) != nil
     }
 
+    func updateUI (_ weather : Weather , _ place : Place) {
+        self.lbCity.text = place.name
+        self.lbWeather.text = weather.main
+        self.lbTemp.text = "\(weather.temp - 273.0)"
+        self.place = place
+        self.weather = weather
+        self.collectionView.reloadData()
+        UserDefaults.standard.set("\(place.id)", forKey: "place")
+        switch weather.description {
+        case "clear sky":
+            self.imageView.image = UIImage(named: "sun")
+        case "few clouds" , "scattered clouds" , "broken clouds":
+            self.imageView.image = UIImage(named: "cloudy")
+        case "shower rain" , "rain":
+            self.imageView.image = UIImage(named: "rain")
+        case "thunderstorm":
+            self.imageView.image = UIImage(named: "storm")
+        case "snow":
+            self.imageView.image = UIImage(named: "snow")
+        default:
+            self.imageView.image = UIImage(named: "cloudy")
+        }
+    }
 }
 
